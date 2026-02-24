@@ -36,12 +36,23 @@ if (Test-Path $envFile) {
     }
 }
 
+# 讀取 config
+$CONFIG_FILE = Join-Path $REPO_ROOT "compound.config.json"
+$config = @{ maxIterations = 5; branchPrefix = "compound/"; logRetentionDays = 14; reportsDir = "./reports" }
+if (Test-Path $CONFIG_FILE) {
+    $configJson = Get-Content $CONFIG_FILE -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($configJson.maxIterations) { $config.maxIterations = [int]$configJson.maxIterations }
+    if ($configJson.branchPrefix) { $config.branchPrefix = $configJson.branchPrefix }
+    if ($configJson.logRetentionDays) { $config.logRetentionDays = [int]$configJson.logRetentionDays }
+    if ($configJson.reportsDir) { $config.reportsDir = $configJson.reportsDir }
+}
+
 # 設定
 $LOG_DIR = Join-Path $REPO_ROOT "logs"
 $LOG_FILE = Join-Path $LOG_DIR ("auto-compound-{0}.log" -f (Get-Date -Format "yyyy-MM-dd"))
 $TASKS_DIR = Join-Path $REPO_ROOT "tasks"
-$MAX_ITERATIONS = if ($env:MAX_LOOP_ITERATIONS) { [int]$env:MAX_LOOP_ITERATIONS } else { 5 }
-$LOG_RETENTION_DAYS = if ($env:LOG_RETENTION_DAYS) { [int]$env:LOG_RETENTION_DAYS } else { 14 }
+$MAX_ITERATIONS = if ($env:MAX_LOOP_ITERATIONS) { [int]$env:MAX_LOOP_ITERATIONS } else { $config.maxIterations }
+$LOG_RETENTION_DAYS = $config.logRetentionDays
 
 # 確保目錄存在
 foreach ($dir in @($LOG_DIR, $TASKS_DIR)) {
@@ -189,12 +200,39 @@ $agentsContent
 
         try {
             $promptFile = Join-Path $env:TEMP "compound-prd-prompt.txt"
+            $stderrFile = Join-Path $env:TEMP "compound-prd-stderr.txt"
             $prdPrompt | Out-File -FilePath $promptFile -Encoding UTF8
 
-            $prdOutput = Get-Content $promptFile | gemini 2>&1
-            $prdContent = $prdOutput -join "`n"
+            $prdOutput = Get-Content $promptFile | gemini 2>$stderrFile
+            $prdExitCode = $LASTEXITCODE
+            $prdContent = ($prdOutput | Out-String).Trim()
 
+            # 記錄 stderr
+            if (Test-Path $stderrFile) {
+                $stderrContent = (Get-Content $stderrFile -Raw -ErrorAction SilentlyContinue)
+                if ($stderrContent) {
+                    Write-Log "Gemini CLI stderr: $($stderrContent.Substring(0, [Math]::Min(500, $stderrContent.Length)))" "WARN"
+                }
+                Remove-Item $stderrFile -Force -ErrorAction SilentlyContinue
+            }
             Remove-Item $promptFile -Force -ErrorAction SilentlyContinue
+
+            # 檢查 exit code
+            if ($prdExitCode -ne 0) {
+                Write-Log "Gemini CLI PRD 回傳非零結束碼: $prdExitCode" "ERROR"
+                exit 1
+            }
+
+            # 驗證輸出
+            if ($prdContent -match 'GaxiosError|status:\s*429|rateLimitExceeded') {
+                Write-Log "Gemini CLI PRD 輸出包含錯誤訊息" "ERROR"
+                exit 1
+            }
+
+            if ([string]::IsNullOrWhiteSpace($prdContent)) {
+                Write-Log "Gemini CLI PRD 回應為空" "ERROR"
+                exit 1
+            }
         }
         catch {
             Write-Log "Gemini CLI PRD 產生失敗: $_" "ERROR"

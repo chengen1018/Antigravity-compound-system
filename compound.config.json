@@ -1,0 +1,9 @@
+{
+  "tool": "gemini",
+  "reportsDir": "./reports",
+  "outputDir": "./scripts/compound",
+  "dailyNotesDir": "./reports/daily-notes",
+  "maxIterations": 5,
+  "branchPrefix": "compound/",
+  "logRetentionDays": 14
+}

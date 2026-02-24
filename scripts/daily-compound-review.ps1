@@ -41,12 +41,21 @@ if (Test-Path $envFile) {
     }
 }
 
+# 讀取 config
+$CONFIG_FILE = Join-Path $REPO_ROOT "compound.config.json"
+$config = @{ dailyNotesDir = "./reports/daily-notes"; logRetentionDays = 14 }
+if (Test-Path $CONFIG_FILE) {
+    $configJson = Get-Content $CONFIG_FILE -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($configJson.dailyNotesDir) { $config.dailyNotesDir = $configJson.dailyNotesDir }
+    if ($configJson.logRetentionDays) { $config.logRetentionDays = [int]$configJson.logRetentionDays }
+}
+
 # 設定
-$DAILY_NOTES_DIR = Join-Path $REPO_ROOT "reports\daily-notes"
+$DAILY_NOTES_DIR = Join-Path $REPO_ROOT ($config.dailyNotesDir -replace '^\.\/', '')
 $AGENTS_FILE = Join-Path $REPO_ROOT "AGENTS.md"
 $LOG_DIR = Join-Path $REPO_ROOT "logs"
 $LOG_FILE = Join-Path $LOG_DIR ("compound-review-{0}.log" -f (Get-Date -Format "yyyy-MM-dd"))
-$LOG_RETENTION_DAYS = if ($env:LOG_RETENTION_DAYS) { [int]$env:LOG_RETENTION_DAYS } else { 14 }
+$LOG_RETENTION_DAYS = $config.logRetentionDays
 
 # 確保 log 目錄存在
 if (-not (Test-Path $LOG_DIR)) { New-Item -ItemType Directory -Path $LOG_DIR -Force | Out-Null }
