@@ -19,34 +19,49 @@
   - 修正策略: <可執行的步驟>
 -->
 
-這是一個非常好的問題。
+這是一個非常好的問題！
 
-## 為什麼會有 `Known Pitfalls`（已知陷阱）？
+## `## Known Pitfalls` 是什麼？
 
-這個區段的目的是 **「防呆」與「節省時間」**。
+這個區段就像是給 AI Agent 的**「路標警示牌」**或**「前車之鑑」**。
 
-當未來的 AI Agent（在 23:00 自動執行任務時）讀到這個檔案，它會知道：
-> 「喔！前人已經踩過這些坑了，我不要再浪費時間去試錯，直接避開。」
+當未來的 `auto-compound` 腳本執行任務時，Gemini 會讀取這份 `AGENTS.md`。當它讀到 `Known Pitfalls` 時，它會知道：
 
-這跟 `Stable Rules` 不一樣：
-- **Stable Rules** 是「你要這樣做」（Do this）。
-- **Known Pitfalls** 是「千萬別這樣做，因為會爆」（Don't do this, it will fail）。
+> ⚠️ **「注意！這裡有坑，之前的任務在這裡失敗過，我必須避開。」**
 
-## 為什麼你的檔案裡預設有這兩點？
+## 為什麼會有這個區段？
 
-雖然我幫你「重置」了 `AGENTS.md`，但我刻意保留了這兩條 **Windows 環境的血淚教訓**，因為它們是這個系統能運作的基石。如果刪掉，未來的 Agent 很可能會再次寫出壞掉的程式碼：
+它的存在是為了**打破「不斷踩同一個坑」的循環**。
 
-1.  **`PowerShell 預設編碼非 UTF-8`**
-    *   **如果不寫這條**：Agent 可能會寫出一個腳本，結果你隔天打開 log 發現全是亂碼（@#%&），因為 PowerShell 5.1 預設不是 UTF-8。
-    *   **有了這條**：Agent 寫腳本時就會乖乖加上 `$OutputEncoding = [System.Text.Encoding]::UTF8`。
+如果沒有這個區段，AI 可能會發生以下情況：
+1. 今天寫了一個 PowerShell 腳本，結果因為編碼問題（UTF-8 without BOM）導致中文亂碼。
+2. 你修好了它，並在 `Recent Learnings` 記了一筆。
+3. **兩週後**，這條 learning 過期被刪除了。
+4. AI **忘記了這個教訓**，又寫出了一個會亂碼的腳本。💥
 
-2.  **`Windows Task Scheduler 的 PATH 與互動式 shell 不同`**
-    *   **如果不寫這條**：Agent 寫的腳本在你手動執行時（互動式）是好的，但晚上自動跑（Task Scheduler）時卻報錯 `git command not found`。
-    *   **有了這條**：Agent 就會知道要寫絕對路徑（例如用 `C:\Program Files\Git\bin\git.exe`）或先設定 PATH。
+`Known Pitfalls` 就是用來存放那些**長期存在、必須時刻警惕的高風險問題**。
 
-### 總結
+## 為什麼現在裡面已經有兩條內容？
 
-這兩點是我們在建置過程中「學到」的最重要架構限制。把它們留在初始狀態，是為了確保你的自動化系統 **第一天晚上就能穩定運作**，不會因為這些基礎環境問題而失敗。
+```markdown
+- PowerShell 預設編碼非 UTF-8，腳本開頭必須設定 `$OutputEncoding`。
+- Windows Task Scheduler 的 PATH 與互動式 shell 不同，腳本內需明確指定工具路徑。
+```
+
+這是我在剛剛「重置」`AGENTS.md` 時，**特意幫你保留下來的「開局大禮包」**。🎁
+
+因為我們剛剛在設定環境時，這兩個問題（PowerShell 編碼、找不到 `gh`/`pwsh`）導致了多次失敗。這兩個是 **Windows 環境下的「絕對地雷」**，如果不寫在這裡，Gemini 下次寫腳本時**有 99% 的機率會再犯錯**。
+
+所以我把它們預先寫入，確保你的系統從第一天開始就是聰明的，不會再因為編碼或路徑問題而崩潰。
+
+---
+
+### 簡單總結
+
+- **Stable Rules** = **該做什麼**（Best Practices）
+- **Known Pitfalls** = **不該做什麼**（Anti-Patterns / 地雷）
+
+這兩者共同構成了 Antigravity 系統的長期記憶。
 
 
 ## Known Pitfalls
