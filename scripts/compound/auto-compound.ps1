@@ -155,7 +155,7 @@ function Main {
 
         # Step 3: 建立 feature branch
         $dateStr = Get-Date -Format "yyyy-MM-dd"
-        $branchName = "compound/$dateStr-$($task.slug)"
+        $branchName = "$($config.branchPrefix)$dateStr-$($task.slug)"
 
         # 檢查分支是否已存在
         $existingBranch = git branch --list $branchName 2>&1

@@ -51,7 +51,7 @@ if (Test-Path $CONFIG_FILE) {
 }
 
 # 設定
-$DAILY_NOTES_DIR = Join-Path $REPO_ROOT ($config.dailyNotesDir -replace '^\.\/', '')
+$DAILY_NOTES_DIR = Join-Path $REPO_ROOT ($config.dailyNotesDir -replace '^\.\/|^\.\\', '')
 $AGENTS_FILE = Join-Path $REPO_ROOT "AGENTS.md"
 $LOG_DIR = Join-Path $REPO_ROOT "logs"
 $LOG_FILE = Join-Path $LOG_DIR ("compound-review-{0}.log" -f (Get-Date -Format "yyyy-MM-dd"))

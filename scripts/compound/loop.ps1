@@ -41,7 +41,7 @@ if ($MaxIterations -eq 0) {
     $MaxIterations = if ($config.maxIterations) { [int]$config.maxIterations } else { 5 }
 }
 
-$OUTPUT_DIR = Join-Path $REPO_ROOT ($config.outputDir -replace '^\.\/', '')
+$OUTPUT_DIR = Join-Path $REPO_ROOT ($config.outputDir -replace '^\.\/|^\.\\', '')
 $LOG_DIR = Join-Path $REPO_ROOT "logs"
 $LOG_FILE = Join-Path $LOG_DIR ("auto-compound-{0}.log" -f (Get-Date -Format "yyyy-MM-dd"))
 $PROGRESS_FILE = Join-Path $OUTPUT_DIR "progress.txt"
