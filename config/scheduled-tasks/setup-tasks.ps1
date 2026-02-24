@@ -16,9 +16,11 @@
 
 $ErrorActionPreference = "Stop"
 
-# 定位 repo 根目錄
-$REPO_ROOT = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-if (-not $REPO_ROOT) { $REPO_ROOT = "d:\chengen\Antigravity-compound-system" }
+# 定位 repo 根目錄（腳本位於 config/scheduled-tasks/ 下，上兩層即為 repo root）
+$REPO_ROOT = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+if (-not $REPO_ROOT -or -not (Test-Path (Join-Path $REPO_ROOT "AGENTS.md"))) {
+    $REPO_ROOT = "d:\chengen\Antigravity-compound-system"
+}
 
 Write-Host "======================================"
 Write-Host "Antigravity Compound System — 排程設定"
@@ -26,8 +28,11 @@ Write-Host "======================================"
 Write-Host "Repo 根目錄: $REPO_ROOT"
 Write-Host ""
 
-# 找到 pwsh 的完整路徑
+# 找到 pwsh 的完整路徑（優先 PowerShell 7）
 $pwshPath = (Get-Command pwsh -ErrorAction SilentlyContinue).Source
+if (-not $pwshPath -and (Test-Path "C:\Program Files\PowerShell\7\pwsh.exe")) {
+    $pwshPath = "C:\Program Files\PowerShell\7\pwsh.exe"
+}
 if (-not $pwshPath) {
     $pwshPath = (Get-Command powershell -ErrorAction SilentlyContinue).Source
 }

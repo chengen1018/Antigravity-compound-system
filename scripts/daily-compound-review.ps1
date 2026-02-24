@@ -23,9 +23,12 @@ $ErrorActionPreference = "Stop"
 $OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# 定位 repo 根目錄（腳本位於 scripts/ 下）
-$REPO_ROOT = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-if (-not $REPO_ROOT) { $REPO_ROOT = Split-Path -Parent $PSScriptRoot }
+# 定位 repo 根目錄（腳本位於 scripts/ 下，只需上一層）
+$REPO_ROOT = Split-Path -Parent $PSScriptRoot
+if (-not $REPO_ROOT -or -not (Test-Path (Join-Path $REPO_ROOT "AGENTS.md"))) {
+    # Fallback: 嘗試用腳本所在目錄的上一層
+    $REPO_ROOT = Split-Path -Parent $PSScriptRoot
+}
 Set-Location $REPO_ROOT
 
 # 載入環境變數
@@ -81,15 +84,21 @@ function Main {
     # Step 0: Log rotation
     Invoke-LogRotation
 
-    # Step 1: git pull
+    # Step 1: git pull（如果有 remote 的話）
     Write-Log "Step 1: git pull origin main"
-    try {
-        $gitOutput = git pull origin main 2>&1
-        Write-Log "git pull 完成: $gitOutput"
+    $remoteCheck = git remote 2>&1
+    if ($remoteCheck -match "origin") {
+        try {
+            $gitOutput = git pull origin main 2>&1
+            Write-Log "git pull 完成: $gitOutput"
+        }
+        catch {
+            Write-Log "git pull 失敗: $_" "WARN"
+            Write-Log "繼續執行（使用本地狀態）..." "WARN"
+        }
     }
-    catch {
-        Write-Log "git pull 失敗: $_" "ERROR"
-        exit 1
+    else {
+        Write-Log "尚未設定 remote origin，跳過 git pull（本地測試模式）" "WARN"
     }
 
     # Step 2: 掃描最近 24h 的 daily notes
@@ -227,8 +236,14 @@ $currentAgents
         git commit -m $commitMsg
         Write-Log "commit 完成: $commitMsg"
 
-        $pushOutput = git push origin main 2>&1
-        Write-Log "push 完成: $pushOutput"
+        $remoteCheck = git remote 2>&1
+        if ($remoteCheck -match "origin") {
+            $pushOutput = git push origin main 2>&1
+            Write-Log "push 完成: $pushOutput"
+        }
+        else {
+            Write-Log "尚未設定 remote origin，跳過 push（本地測試模式）" "WARN"
+        }
     }
     catch {
         Write-Log "git commit/push 失敗: $_" "ERROR"
