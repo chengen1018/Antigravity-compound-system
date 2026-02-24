@@ -124,11 +124,6 @@ function Main {
     # Step 3: 讀取所有 notes 內容
     $notesContent = ""
     foreach ($note in $recentNotes) {
-        # 跳過超過 50KB 的檔案（避免 prompt 過大觸發 rate limit）
-        if ($note.Length -gt 50000) {
-            Write-Log "跳過過大的筆記檔案: $($note.Name) ($([math]::Round($note.Length / 1024, 1))KB > 50KB)" "WARN"
-            continue
-        }
         $content = Get-Content $note.FullName -Raw -Encoding UTF8
         $notesContent += "`n`n--- FILE: $($note.Name) ---`n$content"
     }
