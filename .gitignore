@@ -1,0 +1,20 @@
+# Environment & secrets
+.env.local
+.env
+
+# Logs
+logs/
+
+# Temporary state
+.compound-state.json
+
+# OS files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+*~
