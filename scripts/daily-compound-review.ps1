@@ -124,6 +124,11 @@ function Main {
     # Step 3: 讀取所有 notes 內容
     $notesContent = ""
     foreach ($note in $recentNotes) {
+        # 跳過超過 50KB 的檔案（避免 prompt 過大觸發 rate limit）
+        if ($note.Length -gt 50000) {
+            Write-Log "跳過過大的筆記檔案: $($note.Name) ($([math]::Round($note.Length / 1024, 1))KB > 50KB)" "WARN"
+            continue
+        }
         $content = Get-Content $note.FullName -Raw -Encoding UTF8
         $notesContent += "`n`n--- FILE: $($note.Name) ---`n$content"
     }
@@ -166,13 +171,42 @@ $currentAgents
     try {
         # 將 prompt 寫入暫存檔，避免命令列長度限制
         $promptFile = Join-Path $env:TEMP "compound-review-prompt.txt"
+        $stderrFile = Join-Path $env:TEMP "compound-review-stderr.txt"
         $prompt | Out-File -FilePath $promptFile -Encoding UTF8
 
-        # 呼叫 Gemini CLI（非互動模式）
-        $geminiOutput = Get-Content $promptFile | gemini 2>&1
-        $geminiResult = $geminiOutput -join "`n"
+        # 呼叫 Gemini CLI（非互動模式）— stderr 另存，不混入 stdout
+        $geminiOutput = Get-Content $promptFile | gemini 2>$stderrFile
+        $geminiExitCode = $LASTEXITCODE
+        $geminiResult = ($geminiOutput | Out-String).Trim()
 
+        # 讀取 stderr（用於日誌）
+        if (Test-Path $stderrFile) {
+            $stderrContent = (Get-Content $stderrFile -Raw -ErrorAction SilentlyContinue)
+            if ($stderrContent) {
+                Write-Log "Gemini CLI stderr: $($stderrContent.Substring(0, [Math]::Min(500, $stderrContent.Length)))" "WARN"
+            }
+            Remove-Item $stderrFile -Force -ErrorAction SilentlyContinue
+        }
         Remove-Item $promptFile -Force -ErrorAction SilentlyContinue
+
+        # 檢查 exit code
+        if ($geminiExitCode -ne 0) {
+            Write-Log "Gemini CLI 回傳非零結束碼: $geminiExitCode" "ERROR"
+            exit 1
+        }
+
+        # 驗證輸出不包含錯誤訊息（防止 error dump 寫入 AGENTS.md）
+        if ($geminiResult -match 'GaxiosError|status:\s*429|rateLimitExceeded|ECONNREFUSED|ETIMEDOUT') {
+            Write-Log "Gemini CLI 輸出包含錯誤訊息，中止寫入 AGENTS.md" "ERROR"
+            Write-Log "錯誤輸出前 300 字元: $($geminiResult.Substring(0, [Math]::Min(300, $geminiResult.Length)))" "ERROR"
+            exit 1
+        }
+
+        # 檢查輸出是否為空
+        if ([string]::IsNullOrWhiteSpace($geminiResult)) {
+            Write-Log "Gemini CLI 回應為空，可能遭遇 rate limit 或 API 問題" "ERROR"
+            exit 1
+        }
 
         Write-Log "Gemini CLI 回應長度: $($geminiResult.Length) 字元"
     }
