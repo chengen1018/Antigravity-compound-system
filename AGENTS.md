@@ -19,6 +19,27 @@
   - 修正策略: <可執行的步驟>
 -->
 
+Loaded cached credentials.
+- **[2026-02-24]** [ops]
+  - 來源: 2026-02-24.md
+  - 問題: PowerShell 5.1 不支援無 BOM 的 UTF-8 編碼，導致腳本中的中文字元出現亂碼。
+  - 修正策略: 強制開發與執行環境使用 PowerShell 7 (pwsh)，或確保所有 .ps1 檔案儲存為 UTF-8 with BOM 編碼。
+
+- **[2026-02-24]** [ops]
+  - 來源: 2026-02-24.md
+  - 問題: 需要在自動化任務執行時確保電腦處於喚醒狀態。
+  - 修正策略: 在 Windows 工作排程器 (Task Scheduler) 的「條件」分頁中，勾選「喚醒電腦以執行此工作」。
+
+- **[2026-02-24]** [ops]
+  - 來源: 2026-02-24.md
+  - 問題: Antigravity 對話紀錄 (.pb) 解析困難。
+  - 修正策略: 優先從 `brain/<conv-id>/*.metadata.json` 讀取可讀的 metadata 摘要作為自動化分析的輔助來源。
+
+**建議升級內容：**
+- **Known Pitfalls**: 建議將「PowerShell 5.1 編碼問題」與「優先使用 PowerShell 7 (pwsh)」合併至現有的編碼規則中。
+- **Stable Rules**: 建議新增「Windows 環境開發規範：所有 PowerShell 腳本應在 PowerShell 7 下驗證並確保編碼一致性」。
+
+
 ## Known Pitfalls
 
 <!-- 高頻錯誤與避免策略 -->
